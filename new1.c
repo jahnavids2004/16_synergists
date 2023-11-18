@@ -6,10 +6,10 @@
 
 using namespace dlib;
 
-vector<IplImage*> loadsavedFaces() {
+vector<IplImage*> loadsavedFaces() {       //loads the faces 
   vector<IplImage*> savedFaces;
 
-  for (const string& facePath : savedFacesPaths) {
+  for (const string& facePath : savedFacesPaths) {         // converts images to iplImage format
     IplImage* faceImage = cvLoadImage(facePath.c_str());
     if (!faceImage) {
       printf("Error loading known face image: %s\n", facePath.c_str());
@@ -20,24 +20,27 @@ vector<IplImage*> loadsavedFaces() {
   return savedFaces;
 }
 
-vector<dlib::rectangle> detectFacesAndExtractEncodings(IplImage* image) {
+vector<dlib::rectangle> detectFacesAndExtractEncodings(IplImage* image) {   //detects faces and makes encodings 
  
+
+//converts iplImage to grayscale
+
   IplImage* grayImage = cvCreateImage(cvGetSize(image), image->depth, 1);
   cvCvtColor(image, grayImage, CV_BGR2GRAY);
 
-  
+  //detects face with dlib's functions
 
   frontal_face_detector detector;
   std::vector<dlib::rectangle> faces = detector((cv_matrix)grayImage);
 
-  
+  //takes encodings from each face
 
   std::vector<dlib::shape> shapes;
   shape_predictor predictor;
   deserialize(predictor, "shape_predictor_68_face_landmarks.dat");
   extract_face_features((cv_matrix)grayImage, faces, shapes);
 
-  
+  //conerts dlib shapes
 
   vector<Mat> encodings;
   for (const dlib::shape& shape : shapes) {
@@ -54,27 +57,34 @@ vector<dlib::rectangle> detectFacesAndExtractEncodings(IplImage* image) {
   return encodings;
 }
 
+//now is the comparision for faces (encodings to the webcam)
+
 void CFAMA(const vector<IplImage*>& savedFaces, const vector<Mat>& currentEncodings) {
 
   
+  //compares each present encoding with the saved ones
+
   for (int i = 0; i < currentEncodings.size(); i++) {
     Mat currentEncoding = currentEncodings[i];
     for (int j = 0; j < savedFaces.size(); j++) {
       IplImage* savedFace = savedFaces[j];
       Mat knownEncoding = extractFaceEncoding(savedFace);
 
-   
+   // calculation of the distance
  
 
       double distance = compareFaceDescriptors(currentEncoding, knownEncoding, 0.8);
 
-      
+      //if the distance is reachable then the attendance is marked
+
       if (distance < 0.8) {
         
+      // identifying the people 
+
         string name = savedFaceNames[j];
 
       
-        markAttendance(name);
+        markAttendance(name);   //(it;s done)
       }
     }
   }
@@ -83,6 +93,7 @@ void CFAMA(const vector<IplImage*>& savedFaces, const vector<Mat>& currentEncodi
 
 // Function to mark attendance for a person
 void markAttendance(const string& name) {
+
   // Update attendance records
   attendanceRecords[name].push_back(currentTimestamp());
 
@@ -113,8 +124,6 @@ int main() {
   if (cvWaitKey(1) & 0xFF == 27) {
     break;
   }
-
-
 
 
     // Detect the faces to extract the encodings
